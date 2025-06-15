@@ -115,7 +115,7 @@ export function StoryViewer({
 
   let imgSrcToTry: string | undefined;
   let imageAltText: string = "Story illustration";
-  let dataAiHint: string = "story scene";
+  let dataAiHint: string = "story scene landscape";
 
   if (imageState === 'loading_page_image' && currentPageData?.imageUri) {
     imgSrcToTry = currentPageData.imageUri;
@@ -150,7 +150,7 @@ export function StoryViewer({
                 alt={`Cover for ${title}`}
                 layout="fill"
                 objectFit="cover"
-                data-ai-hint="book cover"
+                data-ai-hint="book cover landscape"
               />
             </div>
           ) : (
@@ -167,17 +167,17 @@ export function StoryViewer({
         <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
           {(imgSrcToTry && imgSrcToTry.startsWith("data:image")) ? (
             <Image
-              key={imgSrcToTry} // Crucial for re-triggering load on src change
+              key={imgSrcToTry} 
               src={imgSrcToTry}
               alt={imageAltText}
-              width={300}
-              height={300}
-              className="rounded-lg shadow-lg object-contain aspect-square subtle-animate"
+              width={400} 
+              height={300} 
+              className="rounded-lg shadow-lg object-contain aspect-[4/3] subtle-animate w-full"
               onError={handleImageError}
               data-ai-hint={dataAiHint}
             />
           ) : (
-            <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
+            <div className="w-full aspect-[4/3] bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
               <ImageOff className="h-16 w-16 text-destructive" />
             </div>
           )}
@@ -199,7 +199,7 @@ export function StoryViewer({
               Regenerate Illustration
             </Button>
              <p className="text-xs text-muted-foreground mt-2">
-                Note: Embedding text in images is experimental and may not always produce perfect results.
+                Note: Embedding text in images is experimental and may not always produce perfect results. Illustrations are landscape-oriented.
              </p>
           </div>
           <div className="mt-6 flex justify-between items-center">
@@ -225,3 +225,4 @@ export function StoryViewer({
     </Card>
   );
 }
+

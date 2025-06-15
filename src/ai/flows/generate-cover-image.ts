@@ -44,14 +44,14 @@ const generateCoverImageFlow = ai.defineFlow(
     outputSchema: GenerateCoverImageOutputSchema,
   },
   async (input) => {
-    let imagePromptText = `Generate a captivating children's book cover.
-    The main character, ${input.characterName}, is provided in the base image.
+    let imagePromptText = `Generate a captivating children's book cover. The cover image MUST be landscape-oriented.
+    The main character, ${input.characterName}, is provided in the base image. Ensure the character's appearance on the cover is HIGHLY CONSISTENT with this base image.
     The story title is "${input.storyTitle}".
     The story theme is "${input.storyTheme}".`;
     if (input.additionalDetails) {
         imagePromptText += `\nConsider these additional details for the cover: "${input.additionalDetails}".`;
     }
-    imagePromptText += `\n\nThe cover should be vibrant, engaging, and clearly display the character. The title text itself should NOT be part of the image, but the overall design should leave space for a title to be overlaid. Focus on a visually appealing composition suitable for a book cover targeting young children. Ensure the style matches a children's book illustration.`;
+    imagePromptText += `\n\nThe cover should be vibrant, engaging, and clearly display the character. The title text itself should NOT be part of the image, but the overall design should leave space for a title to be overlaid. Focus on a visually appealing composition suitable for a book cover targeting young children. Ensure the style matches a children's book illustration. Output the image in landscape orientation.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -76,3 +76,4 @@ const generateCoverImageFlow = ai.defineFlow(
     return { coverImageDataUri: media.url };
   }
 );
+

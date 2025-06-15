@@ -45,8 +45,10 @@ const generatePageIllustrationFlow = ai.defineFlow(
     outputSchema: GeneratePageIllustrationOutputSchema,
   },
   async (input) => {
-    let imagePromptText = `Create a vibrant and engaging children's book page illustration.
+    let imagePromptText = `Create a vibrant and engaging children's book page illustration. The illustration MUST be landscape-oriented.
     The main character, based on the provided image, should be central to the scene.
+    It is CRUCIAL that the character's appearance (features, hair, clothing, colors, style) remains HIGHLY CONSISTENT with the provided base character image. The character must be clearly recognizable as the same individual from the base image in this new scene.
+
     The illustration must artistically and legibly incorporate the following text as part of the visual design, as if it's a page from a storybook: "${input.pageText}"
 
     Scene Description (visual elements for the illustration): "${input.sceneDescription}"
@@ -55,7 +57,7 @@ const generatePageIllustrationFlow = ai.defineFlow(
     if (input.additionalDetails) {
         imagePromptText += `\nConsider these additional details for the illustration style or content: "${input.additionalDetails}".`;
     }
-    imagePromptText += `\n\nEnsure the illustration style is consistent with the base character image, suitable for a children's book. The character should be clearly recognizable. The text should be an integral part of the image.`;
+    imagePromptText += `\n\nEnsure the illustration style is consistent with a children's book. The text should be an integral part of the image. Output the image in landscape orientation.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
