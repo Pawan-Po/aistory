@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette } from 'lucide-react';
-import type { StoryPageData } from '@/types/story';
-import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload } from '@/lib/actions';
+import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette, Send } from 'lucide-react';
+import type { StoryPageData, StoryData } from '@/types/story';
+import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload, processBookCheckoutAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface StoryViewerProps {
   title: string;
@@ -36,16 +37,18 @@ export function StoryViewer({
   pages,
   storyTheme,
   moralLesson,
-  additionalDetails, // These are general story additional details
+  additionalDetails,
   onReset,
 }: StoryViewerProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [currentStoryPages, setCurrentStoryPages] = useState<StoryPageData[]>(pages);
   const [editablePageText, setEditablePageText] = useState<string>('');
-  const [pageSpecificDetails, setPageSpecificDetails] = useState<string>(''); // New state for page-specific details
+  const [pageSpecificDetails, setPageSpecificDetails] = useState<string>('');
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
+  const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [imageState, setImageState] = useState<ImageLoadingState>('loading_page_image');
   const { toast } = useToast();
+  const router = useRouter();
 
   const totalPages = currentStoryPages.length;
   const currentPageData = currentStoryPages[currentPageIndex];
@@ -58,9 +61,9 @@ export function StoryViewer({
     if (currentPageData) {
       setEditablePageText(currentPageData.text);
       setImageState('loading_page_image');
-      setPageSpecificDetails(''); // Reset page-specific details when page changes
+      setPageSpecificDetails(''); 
     }
-  }, [currentPageIndex, currentStoryPages, originalCharacterUri]); // currentPageData dependency removed as it's derived
+  }, [currentPageIndex, currentStoryPages, originalCharacterUri]);
 
 
   const goToNextPage = () => {
@@ -75,7 +78,6 @@ export function StoryViewer({
     if (!currentPageData) return;
     setIsRegenerating(true);
     try {
-      // Combine general additional details with page-specific details
       let combinedAdditionalDetails = additionalDetails || '';
       if (pageSpecificDetails.trim()) {
         combinedAdditionalDetails += `\nFor this specific scene, also consider these visual details: ${pageSpecificDetails.trim()}`;
@@ -94,7 +96,7 @@ export function StoryViewer({
         const updatedPages = [...currentStoryPages];
         updatedPages[currentPageIndex] = {
           ...updatedPages[currentPageIndex],
-          text: editablePageText, //Persist edited text
+          text: editablePageText,
           imageUri: result.newImageUri,
         };
         setCurrentStoryPages(updatedPages);
@@ -118,6 +120,46 @@ export function StoryViewer({
       });
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const handleFinalizeBook = async () => {
+    setIsFinalizing(true);
+    try {
+      const storyDataForCheckout: Pick<StoryData, 'title' | 'characterName' | 'coverImageUri' | 'pages' | 'originalCharacterUri' | 'characterDescription' | 'storyTheme' | 'moralLesson' | 'additionalDetails'> = {
+        title,
+        characterName,
+        coverImageUri,
+        pages: currentStoryPages.map(p => ({...p, text: currentPageIndex === currentStoryPages.indexOf(p) ? editablePageText : p.text })), // Ensure current page text is up-to-date
+        originalCharacterUri,
+        characterDescription,
+        storyTheme,
+        moralLesson,
+        additionalDetails
+      };
+
+      const result = await processBookCheckoutAction(storyDataForCheckout);
+      if (result.success) {
+        toast({
+          title: 'Book Finalized!',
+          description: 'Your book is being processed for simulated PDF generation and emailing.',
+        });
+        router.push('/checkout');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error Finalizing Book',
+          description: result.error || 'Could not finalize the book.',
+        });
+      }
+    } catch (e: any) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: e.message || 'An unexpected error occurred during finalization.',
+      });
+    } finally {
+      setIsFinalizing(false);
     }
   };
 
@@ -247,12 +289,19 @@ export function StoryViewer({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6">
         <Button onClick={onReset} variant="ghost" className="text-accent-foreground hover:text-accent hover:bg-accent/10">
           <RotateCcw className="mr-2 h-5 w-5" /> Create New Story
+        </Button>
+        <Button onClick={handleFinalizeBook} disabled={isFinalizing} size="lg" className="bg-green-500 hover:bg-green-600 text-white">
+          {isFinalizing ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Send className="mr-2 h-5 w-5" />
+          )}
+          Finalize Book & Checkout
         </Button>
       </CardFooter>
     </Card>
   );
 }
-
