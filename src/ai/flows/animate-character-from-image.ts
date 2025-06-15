@@ -65,8 +65,8 @@ const animateCharacterFlow = ai.defineFlow(
       },
     });
 
-    if (!media || !media.url) {
-      throw new Error('Base character image generation failed or did not return a media URL.');
+    if (!media || !media.url || !media.url.startsWith('data:image')) {
+      throw new Error('Base character image generation failed or did not return a valid media data URI.');
     }
     return {animatedCharacterDataUri: media.url};
   }

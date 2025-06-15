@@ -62,7 +62,7 @@ const generatePageIllustrationFlow = ai.defineFlow(
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-         safetySettings: [ // Added safety settings to be less restrictive for common children's story themes
+         safetySettings: [ 
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -71,8 +71,8 @@ const generatePageIllustrationFlow = ai.defineFlow(
       },
     });
 
-    if (!media || !media.url) {
-      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..."`);
+    if (!media || !media.url || !media.url.startsWith('data:image')) {
+      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..." or returned an invalid data URI.`);
     }
     return { pageImageDataUri: media.url };
   }

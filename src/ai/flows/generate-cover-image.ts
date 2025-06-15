@@ -70,8 +70,8 @@ const generateCoverImageFlow = ai.defineFlow(
       },
     });
 
-    if (!media || !media.url) {
-      throw new Error(`Cover image generation failed for title: "${input.storyTitle}".`);
+    if (!media || !media.url || !media.url.startsWith('data:image')) {
+      throw new Error(`Cover image generation failed for title: "${input.storyTitle}" or returned an invalid data URI.`);
     }
     return { coverImageDataUri: media.url };
   }
