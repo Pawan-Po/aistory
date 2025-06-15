@@ -6,7 +6,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette } from 'lucide-react';
 import type { StoryPageData } from '@/types/story';
 import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -35,12 +36,13 @@ export function StoryViewer({
   pages,
   storyTheme,
   moralLesson,
-  additionalDetails,
+  additionalDetails, // These are general story additional details
   onReset,
 }: StoryViewerProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [currentStoryPages, setCurrentStoryPages] = useState<StoryPageData[]>(pages);
   const [editablePageText, setEditablePageText] = useState<string>('');
+  const [pageSpecificDetails, setPageSpecificDetails] = useState<string>(''); // New state for page-specific details
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [imageState, setImageState] = useState<ImageLoadingState>('loading_page_image');
   const { toast } = useToast();
@@ -56,8 +58,9 @@ export function StoryViewer({
     if (currentPageData) {
       setEditablePageText(currentPageData.text);
       setImageState('loading_page_image');
+      setPageSpecificDetails(''); // Reset page-specific details when page changes
     }
-  }, [currentPageIndex, currentStoryPages, originalCharacterUri]);
+  }, [currentPageIndex, currentStoryPages, originalCharacterUri]); // currentPageData dependency removed as it's derived
 
 
   const goToNextPage = () => {
@@ -72,13 +75,19 @@ export function StoryViewer({
     if (!currentPageData) return;
     setIsRegenerating(true);
     try {
+      // Combine general additional details with page-specific details
+      let combinedAdditionalDetails = additionalDetails || '';
+      if (pageSpecificDetails.trim()) {
+        combinedAdditionalDetails += `\nFor this specific scene, also consider these visual details: ${pageSpecificDetails.trim()}`;
+      }
+
       const payload: RegeneratePageIllustrationPayload = {
         baseCharacterDataUri: originalCharacterUri,
         pageText: editablePageText,
         sceneDescription: currentPageData.sceneDescription,
         storyTheme: storyTheme,
         moralLesson: moralLesson,
-        additionalDetails: additionalDetails,
+        additionalDetails: combinedAdditionalDetails.trim() || undefined,
       };
       const result = await regeneratePageIllustrationAction(payload);
       if (result.success && result.newImageUri) {
@@ -89,7 +98,7 @@ export function StoryViewer({
           imageUri: result.newImageUri,
         };
         setCurrentStoryPages(updatedPages);
-        setImageState('loading_page_image'); // Reset image state to try loading the new image
+        setImageState('loading_page_image'); 
         toast({
           title: 'Illustration Regenerated!',
           description: 'The new illustration for this page is ready.',
@@ -125,7 +134,7 @@ export function StoryViewer({
     imageAltText = `Base character: ${characterDescription || title}`;
     dataAiHint = "character generic";
   } else {
-    imgSrcToTry = undefined; // Will show placeholder
+    imgSrcToTry = undefined; 
     imageAltText = "Image not available";
     dataAiHint = "placeholder image error";
   }
@@ -184,13 +193,15 @@ export function StoryViewer({
         </div>
         <div className="md:col-span-2 bg-secondary/30 p-6 rounded-lg shadow-inner min-h-[300px] flex flex-col justify-between">
           <div>
+            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
             <Textarea
+              id="pageText"
               value={editablePageText}
               onChange={(e) => setEditablePageText(e.target.value)}
               className="w-full text-lg leading-relaxed font-body bg-background/70 border-primary/30 focus:border-primary min-h-[150px] mb-4"
               rows={6}
             />
-            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto">
+            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto mb-4">
               {isRegenerating ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -198,10 +209,29 @@ export function StoryViewer({
               )}
               Regenerate Illustration
             </Button>
-             <p className="text-xs text-muted-foreground mt-2">
-                Note: Embedding text in images is experimental and may not always produce perfect results. Illustrations are landscape-oriented.
+             <p className="text-xs text-muted-foreground mb-4">
+                Note: Embedding text in images is experimental. Illustrations are landscape-oriented.
              </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
+                <Palette className="h-5 w-5 text-accent" />
+                Refine This Scene's Illustration
+              </Label>
+              <Textarea
+                id="pageSpecificDetails"
+                value={pageSpecificDetails}
+                onChange={(e) => setPageSpecificDetails(e.target.value)}
+                placeholder="E.g., Character is wearing a red scarf, a friendly squirrel is in the background, the character looks happy..."
+                className="w-full text-sm font-body bg-background/70 border-primary/30 focus:border-primary"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Add specific details for this page's illustration. These will be combined with general story details.
+              </p>
+            </div>
           </div>
+
           <div className="mt-6 flex justify-between items-center">
             <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
               <ChevronLeft className="h-5 w-5" />

@@ -21,7 +21,7 @@ const GeneratePageIllustrationInputSchema = z.object({
   sceneDescription: z.string().describe('A visual description of the scene for this page, including character actions and setting. This guides the visual elements independent of the text to be embedded.'),
   storyTheme: z.string().describe('The overall theme of the story.'),
   moralLesson: z.string().describe('The overall moral lesson of the story.'),
-  additionalDetails: z.string().optional().describe('Any other relevant details for the illustration style or content.'),
+  additionalDetails: z.string().optional().describe('Any other relevant details for the illustration style or content. This may include general story notes and/or specific visual details for the current scene.'),
 });
 export type GeneratePageIllustrationInput = z.infer<typeof GeneratePageIllustrationInputSchema>;
 
@@ -54,8 +54,11 @@ const generatePageIllustrationFlow = ai.defineFlow(
     Scene Description (visual elements for the illustration): "${input.sceneDescription}"
 
     The overall story theme is "${input.storyTheme}" and the moral is "${input.moralLesson}".`;
+
     if (input.additionalDetails) {
-        imagePromptText += `\nConsider these additional details for the illustration style or content: "${input.additionalDetails}".`;
+        // The additionalDetails field might contain general notes and/or page-specific notes.
+        // The prompt for combining these is handled by the client constructing the additionalDetails string.
+        imagePromptText += `\nConsider these additional details for the illustration style, character appearance, or content: "${input.additionalDetails}". If specific visual details for the current scene (e.g. character wearing specific clothes, specific expression) are mentioned within these additional details, please prioritize them for this particular illustration.`;
     }
     imagePromptText += `\n\nEnsure the illustration style is consistent with a children's book. The text should be an integral part of the image. Output the image in landscape orientation.`;
 
