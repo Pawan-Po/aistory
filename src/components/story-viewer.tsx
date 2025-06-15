@@ -16,6 +16,8 @@ interface StoryViewerProps {
   onReset: () => void;
 }
 
+type ImageLoadingState = 'loading_page_image' | 'loading_original_image' | 'failed';
+
 export function StoryViewer({
   title,
   characterDescription,
@@ -24,20 +26,14 @@ export function StoryViewer({
   onReset,
 }: StoryViewerProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [currentImageError, setCurrentImageError] = useState(false);
+  const [imageState, setImageState] = useState<ImageLoadingState>('loading_page_image');
 
   const totalPages = pages.length;
   const currentPageData = pages[currentPageIndex];
 
   useEffect(() => {
-    setCurrentPageIndex(0); // Reset to first page when pages data changes
-    setCurrentImageError(false); // Reset error state too
-  }, [pages]);
-
-  useEffect(() => {
-    setCurrentImageError(false); // Reset error when page index changes
-  }, [currentPageIndex]);
-
+    setImageState('loading_page_image'); // Reset image loading state when page index or story data changes
+  }, [currentPageIndex, pages, originalCharacterUri]);
 
   const goToNextPage = () => {
     setCurrentPageIndex((prev) => Math.min(prev + 1, totalPages - 1));
@@ -46,10 +42,38 @@ export function StoryViewer({
   const goToPreviousPage = () => {
     setCurrentPageIndex((prev) => Math.max(prev - 1, 0));
   };
-  
-  const displayImageUri = currentImageError ? originalCharacterUri : (currentPageData?.imageUri || originalCharacterUri);
-  const displayImageAlt = currentImageError ? "Error loading page image, showing base character" : (currentPageData?.sceneDescription || characterDescription || "Story illustration");
 
+  let imgSrcToTry: string | undefined;
+  let imageAltText: string = "Story illustration";
+  let dataAiHint: string = "story scene";
+
+  if (imageState === 'loading_page_image' && currentPageData?.imageUri) {
+    imgSrcToTry = currentPageData.imageUri;
+    imageAltText = currentPageData.sceneDescription || characterDescription || "Story page illustration";
+    dataAiHint = "story scene";
+  } else if (imageState === 'loading_page_image' || imageState === 'loading_original_image') {
+    // This condition covers:
+    // 1. Initial load for a page without its own imageUri (imageState is 'loading_page_image').
+    // 2. Fallback after page-specific image failed (imageState is 'loading_original_image').
+    imgSrcToTry = originalCharacterUri;
+    imageAltText = `Base character: ${characterDescription || title}`;
+    dataAiHint = "character generic";
+  } else { // imageState === 'failed'
+    imgSrcToTry = undefined; // Force placeholder
+    imageAltText = "Image not available";
+    dataAiHint = "placeholder image error";
+  }
+
+  const handleImageError = () => {
+    if (imageState === 'loading_page_image' && currentPageData?.imageUri) {
+      console.warn(`Failed to load page image for page ${currentPageIndex + 1}. Attempting to load original character image.`);
+      setImageState('loading_original_image');
+    } else if (imageState === 'loading_original_image' || (imageState === 'loading_page_image' && !currentPageData?.imageUri) ) {
+      console.error(`Failed to load original character image (URI: ${originalCharacterUri ? originalCharacterUri.substring(0, 70) + "..." : "undefined"}). Displaying placeholder.`);
+      setImageState('failed');
+    }
+  };
+  
   return (
     <Card className="w-full max-w-4xl shadow-xl my-8">
       <CardHeader className="text-center">
@@ -58,26 +82,16 @@ export function StoryViewer({
       </CardHeader>
       <CardContent className="md:grid md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
-          {displayImageUri && displayImageUri.startsWith("data:image") ? (
+          {imgSrcToTry && imgSrcToTry.startsWith("data:image") ? (
             <Image
-              key={displayImageUri} // Add key to force re-render on URI change, helps with error state
-              src={displayImageUri}
-              alt={displayImageAlt}
+              key={imgSrcToTry} 
+              src={imgSrcToTry}
+              alt={imageAltText}
               width={300}
               height={300}
               className="rounded-lg shadow-lg object-contain aspect-square subtle-animate"
-              onError={() => {
-                // Only set error if it's the page-specific image that failed
-                if (currentPageData?.imageUri && displayImageUri === currentPageData.imageUri) {
-                  console.warn(`Error loading image for page ${currentPageIndex + 1}, falling back to original character image.`);
-                  setCurrentImageError(true);
-                } else if (!currentPageData?.imageUri && displayImageUri === originalCharacterUri) {
-                  // This means the originalCharacterUri itself failed, which is less likely but possible
-                  console.error("Error loading original character image.");
-                  setCurrentImageError(true); // Or handle this more drastically
-                }
-              }}
-              data-ai-hint={currentImageError ? "character generic" : "story scene"}
+              onError={handleImageError}
+              data-ai-hint={dataAiHint}
             />
           ) : (
             <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image">
