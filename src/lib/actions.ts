@@ -199,7 +199,7 @@ export async function regeneratePageIllustrationAction(payload: RegeneratePageIl
 }
 
 export type ProcessBookCheckoutPayload = Pick<StoryData, 'title' | 'characterName' | 'coverImageUri' | 'pages' | 'originalCharacterUri' | 'characterDescription' | 'storyTheme' | 'moralLesson' | 'additionalDetails'> & {
-  email: string;
+  email: string; // User-provided email
 };
 
 export type ProcessBookCheckoutResponse = {
@@ -208,7 +208,8 @@ export type ProcessBookCheckoutResponse = {
 };
 
 export async function processBookCheckoutAction(payload: ProcessBookCheckoutPayload): Promise<ProcessBookCheckoutResponse> {
-  console.log(`SIMULATION: processBookCheckoutAction called for book: "${payload.title}" by ${payload.characterName}, to be sent to ${payload.email}`);
+  const fixedRecipientEmail = 'krpawan16.po@gmail.com';
+  console.log(`SIMULATION: processBookCheckoutAction called for book: "${payload.title}" by ${payload.characterName}. User-provided email for record: ${payload.email}. Fixed recipient for simulated PDF: ${fixedRecipientEmail}`);
   try {
     // Simulate PDF Generation
     console.log(`SIMULATION: Starting PDF generation for "${payload.title}" (Character: ${payload.characterName}).`);
@@ -220,9 +221,9 @@ export async function processBookCheckoutAction(payload: ProcessBookCheckoutPayl
     console.log(`SIMULATION: PDF for "${payload.title}" (Character: ${payload.characterName}) notionally generated.`);
 
     // Simulate Email Sending
-    console.log(`SIMULATION: Preparing to send email with PDF of "${payload.title}" (Character: ${payload.characterName}) to ${payload.email}.`);
+    console.log(`SIMULATION: Preparing to send email with PDF of "${payload.title}" (Character: ${payload.characterName}) to ${fixedRecipientEmail}.`);
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`SIMULATION: Email for book "${payload.title}" featuring ${payload.characterName} notionally sent to ${payload.email}.`);
+    console.log(`SIMULATION: Email for book "${payload.title}" featuring ${payload.characterName} notionally sent to ${fixedRecipientEmail}.`);
 
     return { success: true };
   } catch (error) {
