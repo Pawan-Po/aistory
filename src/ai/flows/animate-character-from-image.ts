@@ -20,6 +20,7 @@ const AnimateCharacterInputSchema = z.object({
     .describe(
       "A photo of a person, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  characterName: z.string().optional().describe('The name of the character, if provided.'),
   storyTheme: z.string().describe('The theme of the story (e.g., adventure, mystery, fantasy).'),
   moralLesson: z.string().describe('The moral lesson to be included in the story (e.g., honesty, kindness, courage).'),
   additionalDetails: z.string().optional().describe('Any additional details or preferences for the character style or story context.'),
@@ -46,7 +47,7 @@ const animateCharacterFlow = ai.defineFlow(
     outputSchema: AnimateCharacterOutputSchema,
   },
   async input => {
-    let imagePromptText = `Generate a vibrant children's book style illustration of the character from the provided photo. This character will be the main figure in a story.`;
+    let imagePromptText = `Generate a vibrant children's book style illustration of the character from the provided photo. ${input.characterName ? `The character's name is ${input.characterName}. ` : ''}This character will be the main figure in a story.`;
     imagePromptText += ` The story's theme is "${input.storyTheme}" and it aims to teach a moral about "${input.moralLesson}".`;
     if (input.additionalDetails) {
       imagePromptText += ` Consider these additional details for the character's general appearance or style: "${input.additionalDetails}".`;

@@ -3,11 +3,13 @@
 import { animateCharacter, type AnimateCharacterInput } from '@/ai/flows/animate-character-from-image';
 import { generateStoryFromPreferences, type GenerateStoryInput, type StoryPage } from '@/ai/flows/generate-story-from-preferences';
 import { generatePageIllustration, type GeneratePageIllustrationInput } from '@/ai/flows/generate-page-illustration';
+import { generateCoverImage, type GenerateCoverImageInput } from '@/ai/flows/generate-cover-image';
 import type { StoryData, StoryPageData } from '@/types/story';
 
 
 export type CreateStoryPayload = {
   characterImageDataUri: string; // This is the original user upload
+  characterName: string;
   storyTheme: string;
   moralLesson: string;
   additionalDetails?: string;
@@ -28,6 +30,7 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
     // 1. Generate the base styled character image
     const characterAnimationInput: AnimateCharacterInput = { 
       photoDataUri: payload.characterImageDataUri,
+      characterName: payload.characterName,
       storyTheme: payload.storyTheme,
       moralLesson: payload.moralLesson,
       additionalDetails: payload.additionalDetails,
@@ -44,7 +47,8 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
 
     // 2. Generate story (title, character description, pages with text & scene descriptions)
     const storyInput: GenerateStoryInput = {
-      characterImage: baseCharacterImageUri, // Use the styled base image for description
+      characterImage: baseCharacterImageUri, 
+      characterName: payload.characterName,
       storyTheme: payload.storyTheme,
       moralLesson: payload.moralLesson,
       additionalDetails: payload.additionalDetails || '',
@@ -55,7 +59,28 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
       throw new Error('Failed to generate story content. The AI flow did not return complete story data or pages.');
     }
 
-    // 3. Generate illustration for each page
+    // 3. Generate Cover Image
+    let coverImageUri = baseCharacterImageUri; // Default to base character if cover generation fails
+    try {
+      const coverImageInput: GenerateCoverImageInput = {
+        baseCharacterDataUri: baseCharacterImageUri,
+        storyTitle: storyResult.title,
+        storyTheme: payload.storyTheme,
+        characterName: payload.characterName,
+        additionalDetails: payload.additionalDetails,
+      };
+      const coverImageGenResult = await generateCoverImage(coverImageInput);
+      if (coverImageGenResult && coverImageGenResult.coverImageDataUri && coverImageGenResult.coverImageDataUri.startsWith('data:image')) {
+        coverImageUri = coverImageGenResult.coverImageDataUri;
+      } else {
+        console.warn('Cover image generation failed or returned invalid data. Using base character image as cover fallback.');
+      }
+    } catch (coverError) {
+       console.warn(`Error generating cover image: ${coverError instanceof Error ? coverError.message : String(coverError)}. Using base character image as cover fallback.`);
+    }
+
+
+    // 4. Generate illustration for each page
     const illustratedPages: StoryPageData[] = [];
     for (const page of storyResult.pages) {
       const pageIllustrationInput: GeneratePageIllustrationInput = {
@@ -66,27 +91,37 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
         moralLesson: payload.moralLesson,
         additionalDetails: payload.additionalDetails,
       };
-      // Simple sequential generation for now. Could be parallelized with caution.
-      const illustrationResult = await generatePageIllustration(pageIllustrationInput);
-      if (!illustrationResult || !illustrationResult.pageImageDataUri || !illustrationResult.pageImageDataUri.startsWith('data:image')) {
-         // Fallback for a failed page image
-        console.warn(`Failed to generate image for page: "${page.sceneDescription.substring(0,30)}...". Using placeholder or base image.`);
+      
+      try {
+        const illustrationResult = await generatePageIllustration(pageIllustrationInput);
+        if (!illustrationResult || !illustrationResult.pageImageDataUri || !illustrationResult.pageImageDataUri.startsWith('data:image')) {
+          console.warn(`Failed to generate image for page: "${page.sceneDescription.substring(0,30)}...". Using base character image as fallback.`);
+          illustratedPages.push({
+            text: page.text,
+            sceneDescription: page.sceneDescription,
+            imageUri: baseCharacterImageUri, 
+          });
+        } else {
+          illustratedPages.push({
+            text: page.text,
+            sceneDescription: page.sceneDescription,
+            imageUri: illustrationResult.pageImageDataUri,
+          });
+        }
+      } catch (pageIllustrationError) {
+        console.warn(`Error generating illustration for page "${page.sceneDescription.substring(0,30)}...": ${pageIllustrationError instanceof Error ? pageIllustrationError.message : String(pageIllustrationError)}. Using base character image as fallback.`);
         illustratedPages.push({
           text: page.text,
           sceneDescription: page.sceneDescription,
-          imageUri: baseCharacterImageUri, // Fallback to base character image
-        });
-      } else {
-        illustratedPages.push({
-          text: page.text,
-          sceneDescription: page.sceneDescription,
-          imageUri: illustrationResult.pageImageDataUri,
+          imageUri: baseCharacterImageUri,
         });
       }
     }
     
     if (illustratedPages.length !== storyResult.pages.length) {
-        throw new Error('Mismatch in page count after illustration generation.');
+        // This case should ideally not be reached if fallbacks are in place for each page
+        console.error('Mismatch in page count after illustration generation. This indicates a more serious issue.');
+        throw new Error('Critical error: Mismatch in page count after illustration generation.');
     }
 
     return {
@@ -94,7 +129,9 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
       data: {
         title: storyResult.title,
         characterDescription: storyResult.characterDescription,
-        originalCharacterUri: baseCharacterImageUri, // Send the base styled character too
+        characterName: payload.characterName,
+        originalCharacterUri: baseCharacterImageUri, 
+        coverImageUri: coverImageUri,
         pages: illustratedPages,
       },
     };
@@ -107,13 +144,11 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
         errorMessage = error;
     }
     
-    // Check for more specific Genkit/Gemini errors
     if (errorMessage.toLowerCase().includes("candidate_finish_reason_safety")) {
         errorMessage = "The AI model flagged the content for safety reasons. Please try modifying your prompts (theme, moral, details) or uploaded image.";
     } else if (errorMessage.includes("upstream") || errorMessage.includes("generation failed")) {
         errorMessage = "There was an issue with the AI image generation service. Please try again later or with a different image/prompt.";
     }
-
 
     return {
       success: false,

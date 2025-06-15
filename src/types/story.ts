@@ -8,6 +8,8 @@ export interface StoryPageData {
 export interface StoryData {
   title: string;
   characterDescription: string;
+  characterName: string;
   originalCharacterUri: string; // The base character image, styled but not in a specific scene
+  coverImageUri: string;
   pages: StoryPageData[];
 }

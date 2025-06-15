@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState, type ChangeEvent, useEffect } from 'react';
 import Image from 'next/image';
-import { UploadCloud, BookHeart, Edit3, Sparkles, Wand2 } from 'lucide-react';
+import { UploadCloud, BookHeart, Edit3, Sparkles, Wand2, UserCircle } from 'lucide-react';
 import type { CreateStoryPayload } from '@/lib/actions';
 import { fileToDataUri } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ const storyCreationSchema = z.object({
       (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
       'Only .jpg, .jpeg, .png, .gif and .webp formats are accepted.'
     ),
+  characterName: z.string().min(2, 'Character name must be at least 2 characters.').max(30, 'Character name must be 30 characters or less.'),
   storyTheme: z.string().min(3, 'Story theme must be at least 3 characters.').max(50, 'Story theme must be 50 characters or less.'),
   moralLesson: z.string().min(3, 'Moral lesson must be at least 3 characters.').max(100, 'Moral lesson must be 100 characters or less.'),
   additionalDetails: z.string().max(500, 'Additional details must be 500 characters or less.').optional(),
@@ -53,6 +55,7 @@ export function CharacterCreationForm({ onSubmit, isLoading }: CharacterCreation
   const form = useForm<StoryCreationFormValues>({
     resolver: zodResolver(storyCreationSchema),
     defaultValues: {
+      characterName: '',
       storyTheme: '',
       moralLesson: '',
       additionalDetails: '',
@@ -91,6 +94,7 @@ export function CharacterCreationForm({ onSubmit, isLoading }: CharacterCreation
     const characterImageDataUri = await fileToDataUri(values.characterImageFile);
     await onSubmit({
       characterImageDataUri,
+      characterName: values.characterName,
       storyTheme: values.storyTheme,
       moralLesson: values.moralLesson,
       additionalDetails: values.additionalDetails,
@@ -104,7 +108,7 @@ export function CharacterCreationForm({ onSubmit, isLoading }: CharacterCreation
           <Wand2 className="h-8 w-8 text-primary" /> Create Your Magical Story
         </CardTitle>
         <CardDescription className="text-center">
-          Upload a character image and let our AI craft a unique tale for you!
+          Upload a character image, give them a name, and let our AI craft a unique tale!
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -126,6 +130,21 @@ export function CharacterCreationForm({ onSubmit, isLoading }: CharacterCreation
                   )}
                   {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
                   <FormDescription>Your character will come to life from this image.</FormDescription>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="characterName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-lg flex items-center gap-2"><UserCircle className="text-accent" /> Character Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Sparkle the Unicorn" {...field} />
+                  </FormControl>
+                  <FormDescription>What is your character's name?</FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />

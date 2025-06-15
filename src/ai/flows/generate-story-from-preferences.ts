@@ -18,6 +18,7 @@ const GenerateStoryInputSchema = z.object({
     .describe(
       "A photo of the main character (already styled for the book), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  characterName: z.string().describe("The name of the main character."),
   storyTheme: z.string().describe('The theme of the story (e.g., adventure, mystery, fantasy).'),
   moralLesson: z.string().describe('The moral lesson to be included in the story (e.g., honesty, kindness, courage).'),
   additionalDetails: z.string().describe('Any additional details or preferences for the story.'),
@@ -32,7 +33,7 @@ export type StoryPage = z.infer<typeof StoryPageSchema>;
 
 const GenerateStoryOutputSchema = z.object({
   title: z.string().describe('The title of the generated story.'),
-  characterDescription: z.string().describe('A description of the main character, based on the provided image.'),
+  characterDescription: z.string().describe('A description of the main character, based on the provided image and name.'),
   pages: z.array(StoryPageSchema).describe('An array of story pages, each with text and a scene description. Aim for 3-5 pages.'),
 });
 export type GenerateStoryOutput = z.infer<typeof GenerateStoryOutputSchema>;
@@ -50,9 +51,10 @@ const prompt = ai.definePrompt({
 Theme: {{{storyTheme}}}
 Moral Lesson: {{{moralLesson}}}
 Additional Details: {{{additionalDetails}}}
+Character Name: {{{characterName}}}
 
-The main character is depicted in this image: {{media url=characterImage}}
-Based on this character image, create a short, descriptive 'characterDescription'.
+The main character, named {{{characterName}}}, is depicted in this image: {{media url=characterImage}}
+Based on this character image and name, create a short, descriptive 'characterDescription'.
 
 Then, write the story. For each page, provide:
 1.  'text': The story text for that page (around 50-100 words).
@@ -77,4 +79,3 @@ const generateStoryFromPreferencesFlow = ai.defineFlow(
     return output;
   }
 );
-
