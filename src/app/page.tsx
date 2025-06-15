@@ -110,8 +110,13 @@ export default function HomePage() {
           <StoryViewer
             title={storyData.title}
             characterDescription={storyData.characterDescription}
+            characterName={storyData.characterName}
             originalCharacterUri={storyData.originalCharacterUri}
+            coverImageUri={storyData.coverImageUri}
             pages={storyData.pages}
+            storyTheme={storyData.storyTheme}
+            moralLesson={storyData.moralLesson}
+            additionalDetails={storyData.additionalDetails}
             onReset={handleReset}
           />
         )}

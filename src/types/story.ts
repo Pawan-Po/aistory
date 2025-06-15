@@ -12,4 +12,8 @@ export interface StoryData {
   originalCharacterUri: string; // The base character image, styled but not in a specific scene
   coverImageUri: string;
   pages: StoryPageData[];
+  storyTheme: string; // Added for regeneration context
+  moralLesson: string; // Added for regeneration context
+  additionalDetails?: string; // Added for regeneration context
 }
+

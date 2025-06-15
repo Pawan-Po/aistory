@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview Generates an illustration for a specific story page.
+ * @fileOverview Generates an illustration for a specific story page, attempting to embed the page text.
  *
  * - generatePageIllustration - A function that generates an image for a story page.
  * - GeneratePageIllustrationInput - The input type for the generatePageIllustration function.
@@ -17,8 +17,8 @@ const GeneratePageIllustrationInputSchema = z.object({
     .describe(
       "The base styled character image, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  pageText: z.string().describe('The text content of the story page, for context.'),
-  sceneDescription: z.string().describe('A visual description of the scene for this page, including character actions and setting.'),
+  pageText: z.string().describe('The text content of the story page. This text should be artistically integrated into the illustration.'),
+  sceneDescription: z.string().describe('A visual description of the scene for this page, including character actions and setting. This guides the visual elements independent of the text to be embedded.'),
   storyTheme: z.string().describe('The overall theme of the story.'),
   moralLesson: z.string().describe('The overall moral lesson of the story.'),
   additionalDetails: z.string().optional().describe('Any other relevant details for the illustration style or content.'),
@@ -29,7 +29,7 @@ const GeneratePageIllustrationOutputSchema = z.object({
   pageImageDataUri: z
     .string()
     .describe(
-      'The generated illustration for the page as a data URI. Expected format: data:<mimetype>;base64,<encoded_data>.'
+      'The generated illustration for the page as a data URI, attempting to include the page text. Expected format: data:<mimetype>;base64,<encoded_data>.'
     ),
 });
 export type GeneratePageIllustrationOutput = z.infer<typeof GeneratePageIllustrationOutputSchema>;
@@ -45,14 +45,17 @@ const generatePageIllustrationFlow = ai.defineFlow(
     outputSchema: GeneratePageIllustrationOutputSchema,
   },
   async (input) => {
-    let imagePromptText = `Generate a children's book illustration for a story page. The character from the provided base image should be depicted in this scene.`;
-    imagePromptText += `\n\nScene Description: "${input.sceneDescription}"`;
-    imagePromptText += `\n\nThe overall story theme is "${input.storyTheme}" and the moral is "${input.moralLesson}".`;
+    let imagePromptText = `Create a vibrant and engaging children's book page illustration.
+    The main character, based on the provided image, should be central to the scene.
+    The illustration must artistically and legibly incorporate the following text as part of the visual design, as if it's a page from a storybook: "${input.pageText}"
+
+    Scene Description (visual elements for the illustration): "${input.sceneDescription}"
+
+    The overall story theme is "${input.storyTheme}" and the moral is "${input.moralLesson}".`;
     if (input.additionalDetails) {
-        imagePromptText += `\nConsider these additional details: "${input.additionalDetails}".`;
+        imagePromptText += `\nConsider these additional details for the illustration style or content: "${input.additionalDetails}".`;
     }
-    imagePromptText += `\n\nPage text for context (do NOT include this text in the image itself): "${input.pageText}"`;
-    imagePromptText += `\n\nEnsure the illustration style is vibrant, engaging, and consistent with the base character image, suitable for a children's book. The character should be clearly recognizable.`;
+    imagePromptText += `\n\nEnsure the illustration style is consistent with the base character image, suitable for a children's book. The character should be clearly recognizable. The text should be an integral part of the image.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -62,7 +65,7 @@ const generatePageIllustrationFlow = ai.defineFlow(
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-         safetySettings: [ 
+         safetySettings: [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -72,8 +75,9 @@ const generatePageIllustrationFlow = ai.defineFlow(
     });
 
     if (!media || !media.url || !media.url.startsWith('data:image')) {
-      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..." or returned an invalid data URI.`);
+      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..." or returned an invalid data URI. Attempting to embed text: "${input.pageText.substring(0,30)}..."`);
     }
     return { pageImageDataUri: media.url };
   }
 );
+

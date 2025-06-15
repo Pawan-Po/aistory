@@ -27,7 +27,6 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
       throw new Error('Invalid character image data URI format (original upload).');
     }
     
-    // 1. Generate the base styled character image
     const characterAnimationInput: AnimateCharacterInput = { 
       photoDataUri: payload.characterImageDataUri,
       characterName: payload.characterName,
@@ -45,7 +44,6 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
     }
     const baseCharacterImageUri = characterAnimationResult.animatedCharacterDataUri;
 
-    // 2. Generate story (title, character description, pages with text & scene descriptions)
     const storyInput: GenerateStoryInput = {
       characterImage: baseCharacterImageUri, 
       characterName: payload.characterName,
@@ -59,8 +57,7 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
       throw new Error('Failed to generate story content. The AI flow did not return complete story data or pages.');
     }
 
-    // 3. Generate Cover Image
-    let coverImageUri = baseCharacterImageUri; // Default to base character if cover generation fails
+    let coverImageUri = baseCharacterImageUri; 
     try {
       const coverImageInput: GenerateCoverImageInput = {
         baseCharacterDataUri: baseCharacterImageUri,
@@ -79,8 +76,6 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
        console.warn(`Error generating cover image: ${coverError instanceof Error ? coverError.message : String(coverError)}. Using base character image as cover fallback.`);
     }
 
-
-    // 4. Generate illustration for each page
     const illustratedPages: StoryPageData[] = [];
     for (const page of storyResult.pages) {
       const pageIllustrationInput: GeneratePageIllustrationInput = {
@@ -119,7 +114,6 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
     }
     
     if (illustratedPages.length !== storyResult.pages.length) {
-        // This case should ideally not be reached if fallbacks are in place for each page
         console.error('Mismatch in page count after illustration generation. This indicates a more serious issue.');
         throw new Error('Critical error: Mismatch in page count after illustration generation.');
     }
@@ -133,6 +127,9 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
         originalCharacterUri: baseCharacterImageUri, 
         coverImageUri: coverImageUri,
         pages: illustratedPages,
+        storyTheme: payload.storyTheme,
+        moralLesson: payload.moralLesson,
+        additionalDetails: payload.additionalDetails,
       },
     };
   } catch (error) {
@@ -150,6 +147,50 @@ export async function createStoryAction(payload: CreateStoryPayload): Promise<Cr
         errorMessage = "There was an issue with the AI image generation service. Please try again later or with a different image/prompt.";
     }
 
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+export type RegeneratePageIllustrationPayload = GeneratePageIllustrationInput;
+export type RegeneratePageIllustrationResponse = {
+  success: boolean;
+  newImageUri?: string;
+  error?: string;
+};
+
+export async function regeneratePageIllustrationAction(payload: RegeneratePageIllustrationPayload): Promise<RegeneratePageIllustrationResponse> {
+  try {
+    if (!payload.baseCharacterDataUri.startsWith('data:image')) {
+      throw new Error('Invalid base character image data URI for regeneration.');
+    }
+
+    const illustrationResult = await generatePageIllustration(payload);
+
+    if (!illustrationResult || !illustrationResult.pageImageDataUri || !illustrationResult.pageImageDataUri.startsWith('data:image')) {
+      throw new Error('Failed to regenerate page illustration or returned invalid data URI.');
+    }
+
+    return {
+      success: true,
+      newImageUri: illustrationResult.pageImageDataUri,
+    };
+  } catch (error) {
+    console.error("Error in regeneratePageIllustrationAction:", error);
+    let errorMessage = 'An unknown error occurred while regenerating the illustration.';
+     if (error instanceof Error) {
+        errorMessage = error.message;
+    } else if (typeof error === 'string') {
+        errorMessage = error;
+    }
+    
+    if (errorMessage.toLowerCase().includes("candidate_finish_reason_safety")) {
+        errorMessage = "The AI model flagged the content for safety reasons. Please try modifying your text or prompts.";
+    } else if (errorMessage.includes("upstream") || errorMessage.includes("generation failed")) {
+        errorMessage = "There was an issue with the AI image generation service. Please try again later or with different text.";
+    }
     return {
       success: false,
       error: errorMessage,

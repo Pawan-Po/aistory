@@ -5,8 +5,11 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
 import type { StoryPageData } from '@/types/story';
+import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 interface StoryViewerProps {
   title: string;
@@ -15,6 +18,9 @@ interface StoryViewerProps {
   originalCharacterUri: string;
   coverImageUri: string;
   pages: StoryPageData[];
+  storyTheme: string;
+  moralLesson: string;
+  additionalDetails?: string;
   onReset: () => void;
 }
 
@@ -27,17 +33,32 @@ export function StoryViewer({
   originalCharacterUri,
   coverImageUri,
   pages,
+  storyTheme,
+  moralLesson,
+  additionalDetails,
   onReset,
 }: StoryViewerProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [currentStoryPages, setCurrentStoryPages] = useState<StoryPageData[]>(pages);
+  const [editablePageText, setEditablePageText] = useState<string>('');
+  const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [imageState, setImageState] = useState<ImageLoadingState>('loading_page_image');
+  const { toast } = useToast();
 
-  const totalPages = pages.length;
-  const currentPageData = pages[currentPageIndex];
+  const totalPages = currentStoryPages.length;
+  const currentPageData = currentStoryPages[currentPageIndex];
 
   useEffect(() => {
-    setImageState('loading_page_image');
-  }, [currentPageIndex, pages, originalCharacterUri]);
+    setCurrentStoryPages(pages);
+  }, [pages]);
+  
+  useEffect(() => {
+    if (currentPageData) {
+      setEditablePageText(currentPageData.text);
+      setImageState('loading_page_image');
+    }
+  }, [currentPageIndex, currentStoryPages, originalCharacterUri]);
+
 
   const goToNextPage = () => {
     setCurrentPageIndex((prev) => Math.min(prev + 1, totalPages - 1));
@@ -47,6 +68,51 @@ export function StoryViewer({
     setCurrentPageIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  const handleRegenerateIllustration = async () => {
+    if (!currentPageData) return;
+    setIsRegenerating(true);
+    try {
+      const payload: RegeneratePageIllustrationPayload = {
+        baseCharacterDataUri: originalCharacterUri,
+        pageText: editablePageText,
+        sceneDescription: currentPageData.sceneDescription,
+        storyTheme: storyTheme,
+        moralLesson: moralLesson,
+        additionalDetails: additionalDetails,
+      };
+      const result = await regeneratePageIllustrationAction(payload);
+      if (result.success && result.newImageUri) {
+        const updatedPages = [...currentStoryPages];
+        updatedPages[currentPageIndex] = {
+          ...updatedPages[currentPageIndex],
+          text: editablePageText, //Persist edited text
+          imageUri: result.newImageUri,
+        };
+        setCurrentStoryPages(updatedPages);
+        setImageState('loading_page_image'); // Reset image state to try loading the new image
+        toast({
+          title: 'Illustration Regenerated!',
+          description: 'The new illustration for this page is ready.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error Regenerating Illustration',
+          description: result.error || 'Could not regenerate the illustration for this page.',
+        });
+      }
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: e.message || 'An unexpected error occurred during regeneration.',
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+
   let imgSrcToTry: string | undefined;
   let imageAltText: string = "Story illustration";
   let dataAiHint: string = "story scene";
@@ -54,13 +120,12 @@ export function StoryViewer({
   if (imageState === 'loading_page_image' && currentPageData?.imageUri) {
     imgSrcToTry = currentPageData.imageUri;
     imageAltText = currentPageData.sceneDescription || characterDescription || "Story page illustration";
-    dataAiHint = "story scene";
   } else if (imageState === 'loading_page_image' || imageState === 'loading_original_image') {
     imgSrcToTry = originalCharacterUri;
     imageAltText = `Base character: ${characterDescription || title}`;
     dataAiHint = "character generic";
   } else {
-    imgSrcToTry = undefined;
+    imgSrcToTry = undefined; // Will show placeholder
     imageAltText = "Image not available";
     dataAiHint = "placeholder image error";
   }
@@ -100,9 +165,9 @@ export function StoryViewer({
       </CardHeader>
       <CardContent className="md:grid md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
-          {imgSrcToTry && imgSrcToTry.startsWith("data:image") ? (
+          {(imgSrcToTry && imgSrcToTry.startsWith("data:image")) ? (
             <Image
-              key={imgSrcToTry}
+              key={imgSrcToTry} // Crucial for re-triggering load on src change
               src={imgSrcToTry}
               alt={imageAltText}
               width={300}
@@ -112,14 +177,30 @@ export function StoryViewer({
               data-ai-hint={dataAiHint}
             />
           ) : (
-            <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image">
+            <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
               <ImageOff className="h-16 w-16 text-destructive" />
             </div>
           )}
         </div>
         <div className="md:col-span-2 bg-secondary/30 p-6 rounded-lg shadow-inner min-h-[300px] flex flex-col justify-between">
-          <div className="text-lg leading-relaxed whitespace-pre-line font-body flex-grow overflow-y-auto max-h-[400px]">
-            {currentPageData?.text || "This page is waiting for its story..."}
+          <div>
+            <Textarea
+              value={editablePageText}
+              onChange={(e) => setEditablePageText(e.target.value)}
+              className="w-full text-lg leading-relaxed font-body bg-background/70 border-primary/30 focus:border-primary min-h-[150px] mb-4"
+              rows={6}
+            />
+            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto">
+              {isRegenerating ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-5 w-5" />
+              )}
+              Regenerate Illustration
+            </Button>
+             <p className="text-xs text-muted-foreground mt-2">
+                Note: Embedding text in images is experimental and may not always produce perfect results.
+             </p>
           </div>
           <div className="mt-6 flex justify-between items-center">
             <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
