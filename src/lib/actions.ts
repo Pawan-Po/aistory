@@ -198,34 +198,31 @@ export async function regeneratePageIllustrationAction(payload: RegeneratePageIl
   }
 }
 
-export type ProcessBookCheckoutPayload = Pick<StoryData, 'title' | 'characterName' | 'coverImageUri' | 'pages' | 'originalCharacterUri' | 'characterDescription' | 'storyTheme' | 'moralLesson' | 'additionalDetails'>;
+export type ProcessBookCheckoutPayload = Pick<StoryData, 'title' | 'characterName' | 'coverImageUri' | 'pages' | 'originalCharacterUri' | 'characterDescription' | 'storyTheme' | 'moralLesson' | 'additionalDetails'> & {
+  email: string;
+};
+
 export type ProcessBookCheckoutResponse = {
   success: boolean;
   error?: string;
 };
 
 export async function processBookCheckoutAction(payload: ProcessBookCheckoutPayload): Promise<ProcessBookCheckoutResponse> {
-  console.log(`SIMULATION: processBookCheckoutAction called for book: "${payload.title}" by ${payload.characterName}`);
+  console.log(`SIMULATION: processBookCheckoutAction called for book: "${payload.title}" by ${payload.characterName}, to be sent to ${payload.email}`);
   try {
     // Simulate PDF Generation
-    // In a real app, you'd use a library like pdf-lib or an API to generate a PDF.
-    // You would iterate through payload.pages, format text, and embed/link images.
-    console.log(`SIMULATION: Starting PDF generation for "${payload.title}".`);
+    console.log(`SIMULATION: Starting PDF generation for "${payload.title}" (Character: ${payload.characterName}).`);
     console.log(`SIMULATION: Cover image URI: ${payload.coverImageUri.substring(0, 50)}...`);
     payload.pages.forEach((page, index) => {
       console.log(`SIMULATION: Processing Page ${index + 1} for PDF: Text - "${page.text.substring(0, 30)}...", Image - ${page.imageUri.substring(0, 50)}...`);
     });
-    // Simulate a delay for PDF generation
     await new Promise(resolve => setTimeout(resolve, 1000)); 
-    console.log(`SIMULATION: PDF for "${payload.title}" notionally generated.`);
+    console.log(`SIMULATION: PDF for "${payload.title}" (Character: ${payload.characterName}) notionally generated.`);
 
     // Simulate Email Sending
-    // In a real app, use Nodemailer, SendGrid, Firebase Extensions, etc.
-    const emailTo = "contactrigjr@gmail.com";
-    console.log(`SIMULATION: Preparing to send email with PDF of "${payload.title}" to ${emailTo}.`);
-    // Simulate a delay for email sending
+    console.log(`SIMULATION: Preparing to send email with PDF of "${payload.title}" (Character: ${payload.characterName}) to ${payload.email}.`);
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`SIMULATION: Email notionally sent to ${emailTo}.`);
+    console.log(`SIMULATION: Email for book "${payload.title}" featuring ${payload.characterName} notionally sent to ${payload.email}.`);
 
     return { success: true };
   } catch (error) {
@@ -237,3 +234,4 @@ export async function processBookCheckoutAction(payload: ProcessBookCheckoutPayl
     };
   }
 }
+

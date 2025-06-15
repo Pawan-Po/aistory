@@ -3,9 +3,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, BookHeart } from "lucide-react";
+import { CheckCircle2, BookHeart, Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function CheckoutPage() {
   return (
@@ -28,14 +29,21 @@ export default function CheckoutPage() {
               Thank you for creating your story!
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
+          <CardContent className="text-center space-y-6">
             <p className="text-muted-foreground">
               Your wonderful book is now being finalized. A PDF copy will be (notionally) prepared and
-              (simulated as) sent to <span className="font-semibold text-primary">contactrigjr@gmail.com</span> shortly.
+              (simulated as) sent to the email address you provided shortly.
             </p>
-            <p className="text-sm text-muted-foreground italic">
-              (Note: This is a simulation. No actual PDF is generated or email sent in this prototype version.)
-            </p>
+            
+            <Alert variant="default" className="text-left bg-blue-50 border-blue-200">
+              <Info className="h-5 w-5 text-blue-600" />
+              <AlertTitle className="font-semibold text-blue-700">Important Note</AlertTitle>
+              <AlertDescription className="text-blue-600">
+                This is a prototype application. No actual PDF is generated, and no email is sent. 
+                The process described is a simulation for demonstration purposes only.
+              </AlertDescription>
+            </Alert>
+
             <Link href="/" passHref>
               <Button size="lg" className="mt-6 w-full sm:w-auto">
                 <BookHeart className="mr-2 h-5 w-5" />
@@ -51,3 +59,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+

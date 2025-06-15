@@ -7,9 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input'; // Added for email input
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'; // Added for email dialog
+import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette, Send, Mail } from 'lucide-react';
 import type { StoryPageData, StoryData } from '@/types/story';
-import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload, processBookCheckoutAction } from '@/lib/actions';
+import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload, processBookCheckoutAction, type ProcessBookCheckoutPayload } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -47,6 +59,9 @@ export function StoryViewer({
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [imageState, setImageState] = useState<ImageLoadingState>('loading_page_image');
+  const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
+  const [checkoutEmail, setCheckoutEmail] = useState('');
+
   const { toast } = useToast();
   const router = useRouter();
 
@@ -123,19 +138,28 @@ export function StoryViewer({
     }
   };
 
-  const handleFinalizeBook = async () => {
+  const handleConfirmCheckout = async () => {
+    if (!checkoutEmail.trim() || !/^\S+@\S+\.\S+$/.test(checkoutEmail.trim())) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+      });
+      return;
+    }
     setIsFinalizing(true);
     try {
-      const storyDataForCheckout: Pick<StoryData, 'title' | 'characterName' | 'coverImageUri' | 'pages' | 'originalCharacterUri' | 'characterDescription' | 'storyTheme' | 'moralLesson' | 'additionalDetails'> = {
+      const storyDataForCheckout: ProcessBookCheckoutPayload = {
         title,
         characterName,
         coverImageUri,
-        pages: currentStoryPages.map(p => ({...p, text: currentPageIndex === currentStoryPages.indexOf(p) ? editablePageText : p.text })), // Ensure current page text is up-to-date
+        pages: currentStoryPages.map(p => ({...p, text: currentPageIndex === currentStoryPages.indexOf(p) ? editablePageText : p.text })),
         originalCharacterUri,
         characterDescription,
         storyTheme,
         moralLesson,
-        additionalDetails
+        additionalDetails,
+        email: checkoutEmail.trim(),
       };
 
       const result = await processBookCheckoutAction(storyDataForCheckout);
@@ -144,6 +168,7 @@ export function StoryViewer({
           title: 'Book Finalized!',
           description: 'Your book is being processed for simulated PDF generation and emailing.',
         });
+        setIsCheckoutDialogOpen(false);
         router.push('/checkout');
       } else {
         toast({
@@ -293,15 +318,52 @@ export function StoryViewer({
         <Button onClick={onReset} variant="ghost" className="text-accent-foreground hover:text-accent hover:bg-accent/10">
           <RotateCcw className="mr-2 h-5 w-5" /> Create New Story
         </Button>
-        <Button onClick={handleFinalizeBook} disabled={isFinalizing} size="lg" className="bg-green-500 hover:bg-green-600 text-white">
-          {isFinalizing ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <Send className="mr-2 h-5 w-5" />
-          )}
-          Finalize Book & Checkout
-        </Button>
+        
+        <AlertDialog open={isCheckoutDialogOpen} onOpenChange={setIsCheckoutDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
+              <Send className="mr-2 h-5 w-5" />
+              Finalize Book & Checkout
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Mail className="h-6 w-6 text-primary" />
+                Receive Your Masterpiece!
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Enter your email address below. A (simulated) PDF copy of your book
+                will be prepared and notionally sent to you.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="checkout-email" className="text-left mb-2 block font-semibold">Email Address</Label>
+              <Input
+                id="checkout-email"
+                type="email"
+                placeholder="you@example.com"
+                value={checkoutEmail}
+                onChange={(e) => setCheckoutEmail(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isFinalizing}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmCheckout} disabled={isFinalizing}>
+                {isFinalizing ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-5 w-5" />
+                )}
+                Confirm & Send
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </CardFooter>
     </Card>
   );
 }
+
