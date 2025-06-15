@@ -1,64 +1,43 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, ImageOff } from 'lucide-react';
+import type { StoryPageData } from '@/types/story';
 
 interface StoryViewerProps {
   title: string;
-  storyContent: string;
-  animatedCharacterUri: string;
   characterDescription: string;
+  originalCharacterUri: string; // Base character image
+  pages: StoryPageData[];
   onReset: () => void;
 }
 
-const WORDS_PER_PAGE = 100; // Adjust as needed for comfortable reading
-
 export function StoryViewer({
   title,
-  storyContent,
-  animatedCharacterUri,
   characterDescription,
+  originalCharacterUri,
+  pages,
   onReset,
 }: StoryViewerProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [characterImageError, setCharacterImageError] = useState(false);
+  const [currentImageError, setCurrentImageError] = useState(false);
 
-  const storyPages = useMemo(() => {
-    if (!storyContent) return [''];
-    // Split by paragraph first, then group paragraphs or split long paragraphs.
-    const paragraphs = storyContent.split(/\n\s*\n/).filter(p => p.trim() !== '');
-    const pages: string[] = [];
-    let currentPageText = '';
+  const totalPages = pages.length;
+  const currentPageData = pages[currentPageIndex];
 
-    for (const paragraph of paragraphs) {
-      const wordsInParagraph = paragraph.split(/\s+/).length;
-      const wordsInCurrentPage = currentPageText.split(/\s+/).filter(w => w).length;
+  useEffect(() => {
+    setCurrentPageIndex(0); // Reset to first page when pages data changes
+    setCurrentImageError(false); // Reset error state too
+  }, [pages]);
 
-      if (currentPageText && (wordsInCurrentPage + wordsInParagraph > WORDS_PER_PAGE * 1.2)) { // Allow some overflow before forcing new page
-        pages.push(currentPageText.trim());
-        currentPageText = paragraph;
-      } else {
-        currentPageText += (currentPageText ? '\n\n' : '') + paragraph;
-      }
+  useEffect(() => {
+    setCurrentImageError(false); // Reset error when page index changes
+  }, [currentPageIndex]);
 
-      // If a single paragraph itself is very long
-      while (currentPageText.split(/\s+/).length > WORDS_PER_PAGE * 1.5) {
-        const words = currentPageText.split(/\s+/);
-        const pageBreakPoint = Math.floor(words.length * (WORDS_PER_PAGE / (words.length +1))); // Heuristic break point
-        pages.push(words.slice(0, pageBreakPoint).join(' '));
-        currentPageText = words.slice(pageBreakPoint).join(' ');
-      }
-    }
-    if (currentPageText.trim()) {
-      pages.push(currentPageText.trim());
-    }
-    return pages.length > 0 ? pages : ['The story is waiting to be told...'];
-  }, [storyContent]);
-
-  const totalPages = storyPages.length;
 
   const goToNextPage = () => {
     setCurrentPageIndex((prev) => Math.min(prev + 1, totalPages - 1));
@@ -68,9 +47,8 @@ export function StoryViewer({
     setCurrentPageIndex((prev) => Math.max(prev - 1, 0));
   };
   
-  useEffect(() => {
-    setCurrentPageIndex(0); // Reset to first page when story content changes
-  }, [storyContent]);
+  const displayImageUri = currentImageError ? originalCharacterUri : (currentPageData?.imageUri || originalCharacterUri);
+  const displayImageAlt = currentImageError ? "Error loading page image, showing base character" : (currentPageData?.sceneDescription || characterDescription || "Story illustration");
 
   return (
     <Card className="w-full max-w-4xl shadow-xl my-8">
@@ -80,30 +58,38 @@ export function StoryViewer({
       </CardHeader>
       <CardContent className="md:grid md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
-          {characterImageError ? (
-             <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center text-destructive-foreground p-4">
-               <p className="text-center">Could not load character image.</p>
-             </div>
-          ) : animatedCharacterUri && animatedCharacterUri.startsWith("data:image") ? (
+          {displayImageUri && displayImageUri.startsWith("data:image") ? (
             <Image
-              src={animatedCharacterUri}
-              alt={characterDescription || "Animated character"}
+              key={displayImageUri} // Add key to force re-render on URI change, helps with error state
+              src={displayImageUri}
+              alt={displayImageAlt}
               width={300}
               height={300}
               className="rounded-lg shadow-lg object-contain aspect-square subtle-animate"
-              onError={() => setCharacterImageError(true)}
-              data-ai-hint="character illustration"
+              onError={() => {
+                // Only set error if it's the page-specific image that failed
+                if (currentPageData?.imageUri && displayImageUri === currentPageData.imageUri) {
+                  console.warn(`Error loading image for page ${currentPageIndex + 1}, falling back to original character image.`);
+                  setCurrentImageError(true);
+                } else if (!currentPageData?.imageUri && displayImageUri === originalCharacterUri) {
+                  // This means the originalCharacterUri itself failed, which is less likely but possible
+                  console.error("Error loading original character image.");
+                  setCurrentImageError(true); // Or handle this more drastically
+                }
+              }}
+              data-ai-hint={currentImageError ? "character generic" : "story scene"}
             />
           ) : (
-            <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder character">
-              <p className="text-center">Character image not available.</p>
+            <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image">
+              <ImageOff className="h-16 w-16 text-destructive" />
+              <p className="text-center mt-2">Image not available for this page.</p>
             </div>
           )}
         </div>
         <div className="md:col-span-2 bg-secondary/30 p-6 rounded-lg shadow-inner min-h-[300px] flex flex-col justify-between">
-          <p className="text-lg leading-relaxed whitespace-pre-line font-body">
-            {storyPages[currentPageIndex]}
-          </p>
+          <div className="text-lg leading-relaxed whitespace-pre-line font-body flex-grow overflow-y-auto max-h-[400px]">
+            {currentPageData?.text || "This page is waiting for its story..."}
+          </div>
           <div className="mt-6 flex justify-between items-center">
             <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
               <ChevronLeft className="h-5 w-5" />
@@ -112,7 +98,7 @@ export function StoryViewer({
             <span className="text-sm text-muted-foreground">
               Page {currentPageIndex + 1} of {totalPages}
             </span>
-            <Button onClick={goToNextPage} disabled={currentPageIndex === totalPages - 1} variant="outline" aria-label="Next Page">
+            <Button onClick={goToNextPage} disabled={currentPageIndex === totalPages - 1 || totalPages === 0} variant="outline" aria-label="Next Page">
               Next
               <ChevronRight className="h-5 w-5" />
             </Button>

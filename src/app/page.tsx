@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CharacterCreationForm, type StoryCreationFormValues } from '@/components/character-creation-form';
+import { CharacterCreationForm } from '@/components/character-creation-form';
 import { StoryViewer } from '@/components/story-viewer';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,7 +10,6 @@ import { Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createStoryAction, type CreateStoryPayload } from '@/lib/actions';
 import type { StoryData } from '@/types/story';
-import { fileToDataUri } from '@/lib/utils';
 import Image from 'next/image';
 
 export default function HomePage() {
@@ -28,6 +28,7 @@ export default function HomePage() {
   const handleStoryCreate = async (payload: CreateStoryPayload) => {
     setIsLoading(true);
     setError(null);
+    setStoryData(null); // Clear previous story data
     try {
       const result = await createStoryAction(payload);
       if (result.success && result.data) {
@@ -89,7 +90,7 @@ export default function HomePage() {
         {isLoading && (
           <div className="fixed inset-0 bg-background/80 flex flex-col items-center justify-center z-50">
             <LoadingSpinner size="lg" />
-            <p className="mt-4 text-lg text-primary animate-pulse">Weaving your magical tale...</p>
+            <p className="mt-4 text-lg text-primary animate-pulse">Weaving your magical tale... this might take a moment!</p>
           </div>
         )}
 
@@ -108,9 +109,9 @@ export default function HomePage() {
         {storyData && !isLoading && (
           <StoryViewer
             title={storyData.title}
-            storyContent={storyData.story}
-            animatedCharacterUri={storyData.animatedCharacterUri}
             characterDescription={storyData.characterDescription}
+            originalCharacterUri={storyData.originalCharacterUri}
+            pages={storyData.pages}
             onReset={handleReset}
           />
         )}

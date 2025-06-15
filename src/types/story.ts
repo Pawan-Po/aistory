@@ -1,6 +1,13 @@
+
+export interface StoryPageData {
+  text: string;
+  sceneDescription: string; // May not be needed by frontend display, but good for data structure
+  imageUri: string;
+}
+
 export interface StoryData {
   title: string;
-  story: string;
   characterDescription: string;
-  animatedCharacterUri: string;
+  originalCharacterUri: string; // The base character image, styled but not in a specific scene
+  pages: StoryPageData[];
 }

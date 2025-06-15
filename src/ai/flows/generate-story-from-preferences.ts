@@ -1,7 +1,8 @@
-// src/ai/flows/generate-story-from-preferences.ts
+
 'use server';
 /**
  * @fileOverview Generates a story based on user preferences including character details, themes, and moral lessons.
+ * The story is structured into pages, each with text and a scene description for illustration.
  *
  * - generateStoryFromPreferences - A function that generates a story based on preferences.
  * - GenerateStoryInput - The input type for the generateStoryFromPreferences function.
@@ -15,7 +16,7 @@ const GenerateStoryInputSchema = z.object({
   characterImage: z
     .string()
     .describe(
-      "A photo of the main character, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of the main character (already styled for the book), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   storyTheme: z.string().describe('The theme of the story (e.g., adventure, mystery, fantasy).'),
   moralLesson: z.string().describe('The moral lesson to be included in the story (e.g., honesty, kindness, courage).'),
@@ -23,10 +24,16 @@ const GenerateStoryInputSchema = z.object({
 });
 export type GenerateStoryInput = z.infer<typeof GenerateStoryInputSchema>;
 
+const StoryPageSchema = z.object({
+  text: z.string().describe('The text content for this page of the story.'),
+  sceneDescription: z.string().describe('A brief visual description of the scene on this page, to be used for image generation. Focus on character action, expression, and key background elements.'),
+});
+export type StoryPage = z.infer<typeof StoryPageSchema>;
+
 const GenerateStoryOutputSchema = z.object({
   title: z.string().describe('The title of the generated story.'),
-  story: z.string().describe('The generated story content.'),
-  characterDescription: z.string().describe('A description of the animated character.'),
+  characterDescription: z.string().describe('A description of the main character, based on the provided image.'),
+  pages: z.array(StoryPageSchema).describe('An array of story pages, each with text and a scene description. Aim for 3-5 pages.'),
 });
 export type GenerateStoryOutput = z.infer<typeof GenerateStoryOutputSchema>;
 
@@ -38,16 +45,21 @@ const prompt = ai.definePrompt({
   name: 'generateStoryFromPreferencesPrompt',
   input: {schema: GenerateStoryInputSchema},
   output: {schema: GenerateStoryOutputSchema},
-  prompt: `You are a children's book author. Generate a unique and engaging story based on the following preferences:
+  prompt: `You are a children's book author. Generate a unique and engaging story with about 3-5 pages based on the following preferences:
 
 Theme: {{{storyTheme}}}
 Moral Lesson: {{{moralLesson}}}
 Additional Details: {{{additionalDetails}}}
 
-Create a description of the character based on this image: {{media url=characterImage}}
+The main character is depicted in this image: {{media url=characterImage}}
+Based on this character image, create a short, descriptive 'characterDescription'.
 
+Then, write the story. For each page, provide:
+1.  'text': The story text for that page (around 50-100 words).
+2.  'sceneDescription': A concise visual description (1-2 sentences) of the scene for this page. This description should guide an illustrator and focus on the character's actions, expressions, and key background elements relevant to the text.
 
-Output the title, story and characterDescription as a JSON object. Make the story at least 500 words.
+Output the title, characterDescription, and an array of pages (each page being an object with 'text' and 'sceneDescription') as a JSON object.
+The story should have a clear beginning, middle, and end, suitable for young children. Ensure there are at least 3 pages.
 `,
 });
 
@@ -59,6 +71,10 @@ const generateStoryFromPreferencesFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output || !output.pages || output.pages.length === 0) {
+      throw new Error('Story generation failed to produce pages.');
+    }
+    return output;
   }
 );
+
