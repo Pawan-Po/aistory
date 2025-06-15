@@ -12,7 +12,7 @@ interface StoryViewerProps {
   title: string;
   characterDescription: string;
   characterName: string;
-  originalCharacterUri: string; 
+  originalCharacterUri: string;
   coverImageUri: string;
   pages: StoryPageData[];
   onReset: () => void;
@@ -36,7 +36,7 @@ export function StoryViewer({
   const currentPageData = pages[currentPageIndex];
 
   useEffect(() => {
-    setImageState('loading_page_image'); 
+    setImageState('loading_page_image');
   }, [currentPageIndex, pages, originalCharacterUri]);
 
   const goToNextPage = () => {
@@ -59,8 +59,8 @@ export function StoryViewer({
     imgSrcToTry = originalCharacterUri;
     imageAltText = `Base character: ${characterDescription || title}`;
     dataAiHint = "character generic";
-  } else { 
-    imgSrcToTry = undefined; 
+  } else {
+    imgSrcToTry = undefined;
     imageAltText = "Image not available";
     dataAiHint = "placeholder image error";
   }
@@ -74,7 +74,7 @@ export function StoryViewer({
       setImageState('failed');
     }
   };
-  
+
   return (
     <Card className="w-full max-w-4xl shadow-xl my-8">
       <CardHeader className="text-center">
@@ -102,7 +102,7 @@ export function StoryViewer({
         <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
           {imgSrcToTry && imgSrcToTry.startsWith("data:image") ? (
             <Image
-              key={imgSrcToTry} 
+              key={imgSrcToTry}
               src={imgSrcToTry}
               alt={imageAltText}
               width={300}
@@ -114,7 +114,6 @@ export function StoryViewer({
           ) : (
             <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image">
               <ImageOff className="h-16 w-16 text-destructive" />
-              <p className="text-center mt-2">Image not available for this page.</p>
             </div>
           )}
         </div>
