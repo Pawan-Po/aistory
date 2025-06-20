@@ -261,7 +261,7 @@ export function StoryViewer({
         
         <div className="w-full max-w-2xl bg-secondary/30 p-4 md:p-6 rounded-lg shadow-inner flex flex-col gap-4">
           <div>
-            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
+            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text (AI will attempt to include this in the illustration)</Label>
             <Textarea
               id="pageText"
               value={editablePageText}
@@ -280,7 +280,7 @@ export function StoryViewer({
               Regenerate Illustration
             </Button>
              <p className="text-xs text-muted-foreground mb-2">
-                Illustrations are landscape-oriented.
+                Illustrations are landscape-oriented. Embedding text accurately in images is experimental; results may vary.
              </p>
           </div>
           <div className="space-y-2">
@@ -368,3 +368,4 @@ export function StoryViewer({
     </Card>
   );
 }
+
