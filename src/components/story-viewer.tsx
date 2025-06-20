@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette, Send, Mail } from 'lucide-react';
-import type { StoryPageData, StoryData } from '@/types/story';
+import type { StoryPageData } from '@/types/story';
 import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload, processBookCheckoutAction, type ProcessBookCheckoutPayload } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -78,7 +78,7 @@ export function StoryViewer({
       setImageState('loading_page_image');
       setPageSpecificDetails(''); 
     }
-  }, [currentPageIndex, currentStoryPages, originalCharacterUri]);
+  }, [currentPageIndex, currentStoryPages]);
 
 
   const goToNextPage = () => {
@@ -239,68 +239,75 @@ export function StoryViewer({
         {characterName && <CardDescription className="text-xl font-semibold mt-2 text-accent-foreground_darker">Featuring: {characterName}</CardDescription>}
         {characterDescription && <CardDescription className="text-md italic mt-1">{characterDescription}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex flex-col items-center gap-6 p-4 md:p-6">
-        <div className="w-full max-w-2xl">
-          {(imgSrcToTry && imgSrcToTry.startsWith("data:image")) ? (
-            <Image
-              key={imgSrcToTry} 
-              src={imgSrcToTry}
-              alt={imageAltText}
-              width={600} 
-              height={450} 
-              className="rounded-lg shadow-lg object-contain aspect-[4/3] subtle-animate w-full"
-              onError={handleImageError}
-              data-ai-hint={dataAiHint}
-            />
-          ) : (
-            <div className="w-full aspect-[4/3] bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
-              <ImageOff className="h-16 w-16 text-destructive" />
-              <p className="text-center mt-2">Illustration not available.</p>
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+          {/* Left Column: Image Display */}
+          <div className="w-full md:w-1/2">
+            {(imgSrcToTry && imgSrcToTry.startsWith("data:image")) ? (
+              <div className="relative w-full aspect-[4/3] rounded-lg shadow-lg overflow-hidden subtle-animate">
+                <Image
+                  key={imgSrcToTry} 
+                  src={imgSrcToTry}
+                  alt={imageAltText}
+                  layout="fill"
+                  objectFit="contain" 
+                  className="rounded-lg"
+                  onError={handleImageError}
+                  data-ai-hint={dataAiHint}
+                />
+              </div>
+            ) : (
+              <div className="w-full aspect-[4/3] bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
+                <ImageOff className="h-16 w-16 text-destructive" />
+                <p className="text-center mt-2">Illustration not available.</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Right Column: Text and Controls Block */}
+          <div className="w-full md:w-1/2 bg-secondary/30 p-4 md:p-6 rounded-lg shadow-inner flex flex-col gap-4">
+            <div>
+              <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
+              <Textarea
+                id="pageText"
+                value={editablePageText}
+                onChange={(e) => setEditablePageText(e.target.value)}
+                className="w-full text-lg leading-relaxed font-body bg-background/70 border-primary/30 focus:border-primary min-h-[150px] mb-4"
+                rows={6}
+              />
             </div>
-          )}
-        </div>
-        
-        <div className="w-full max-w-2xl bg-secondary/30 p-4 md:p-6 rounded-lg shadow-inner flex flex-col gap-4">
-          <div>
-            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
-            <Textarea
-              id="pageText"
-              value={editablePageText}
-              onChange={(e) => setEditablePageText(e.target.value)}
-              className="w-full text-lg leading-relaxed font-body bg-background/70 border-primary/30 focus:border-primary min-h-[150px] mb-4"
-              rows={6}
-            />
-          </div>
-          <div>
-            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto mb-2">
-              {isRegenerating ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-5 w-5" />
-              )}
-              Regenerate Illustration
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
-              <Palette className="h-5 w-5 text-accent" />
-              Refine This Scene's Illustration
-            </Label>
-            <Textarea
-              id="pageSpecificDetails"
-              value={pageSpecificDetails}
-              onChange={(e) => setPageSpecificDetails(e.target.value)}
-              placeholder="E.g., Character is wearing a red scarf, a friendly squirrel is in the background, the character looks happy..."
-              className="w-full text-sm font-body bg-background/70 border-primary/30 focus:border-primary"
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">
-              Add specific details for this page's illustration. These will be combined with general story details.
-            </p>
+            <div>
+              <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto mb-2">
+                {isRegenerating ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-5 w-5" />
+                )}
+                Regenerate Illustration
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
+                <Palette className="h-5 w-5 text-accent" />
+                Refine This Scene's Illustration
+              </Label>
+              <Textarea
+                id="pageSpecificDetails"
+                value={pageSpecificDetails}
+                onChange={(e) => setPageSpecificDetails(e.target.value)}
+                placeholder="E.g., Character is wearing a red scarf, a friendly squirrel is in the background, the character looks happy..."
+                className="w-full text-sm font-body bg-background/70 border-primary/30 focus:border-primary"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Add specific details for this page's illustration. These will be combined with general story details.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="w-full max-w-2xl flex justify-between items-center mt-4">
+        {/* Pagination Controls */}
+        <div className="w-full flex justify-between items-center mt-6 pt-6 border-t">
           <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
             <ChevronLeft className="h-5 w-5" />
             Previous
