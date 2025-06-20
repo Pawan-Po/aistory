@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; // Added for email input
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'; // Added for email dialog
+} from '@/components/ui/alert-dialog';
 import { ChevronLeft, ChevronRight, RotateCcw, ImageOff, BookOpen, RefreshCw, Loader2, Palette, Send, Mail } from 'lucide-react';
 import type { StoryPageData, StoryData } from '@/types/story';
 import { regeneratePageIllustrationAction, type RegeneratePageIllustrationPayload, processBookCheckoutAction, type ProcessBookCheckoutPayload } from '@/lib/actions';
@@ -100,7 +100,7 @@ export function StoryViewer({
 
       const payload: RegeneratePageIllustrationPayload = {
         baseCharacterDataUri: originalCharacterUri,
-        pageText: editablePageText, // Kept for potential implicit context, though not directly rendered
+        pageText: editablePageText, 
         sceneDescription: currentPageData.sceneDescription,
         storyTheme: storyTheme,
         moralLesson: moralLesson,
@@ -111,7 +111,7 @@ export function StoryViewer({
         const updatedPages = [...currentStoryPages];
         updatedPages[currentPageIndex] = {
           ...updatedPages[currentPageIndex],
-          text: editablePageText, // Ensure text is updated if it was edited
+          text: editablePageText, 
           imageUri: result.newImageUri,
         };
         setCurrentStoryPages(updatedPages);
@@ -239,15 +239,15 @@ export function StoryViewer({
         {characterName && <CardDescription className="text-xl font-semibold mt-2 text-accent-foreground_darker">Featuring: {characterName}</CardDescription>}
         {characterDescription && <CardDescription className="text-md italic mt-1">{characterDescription}</CardDescription>}
       </CardHeader>
-      <CardContent className="md:grid md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 flex flex-col items-center mb-6 md:mb-0">
+      <CardContent className="flex flex-col items-center gap-6 p-4 md:p-6">
+        <div className="w-full max-w-2xl">
           {(imgSrcToTry && imgSrcToTry.startsWith("data:image")) ? (
             <Image
               key={imgSrcToTry} 
               src={imgSrcToTry}
               alt={imageAltText}
-              width={400} 
-              height={300} 
+              width={600} 
+              height={450} 
               className="rounded-lg shadow-lg object-contain aspect-[4/3] subtle-animate w-full"
               onError={handleImageError}
               data-ai-hint={dataAiHint}
@@ -258,7 +258,8 @@ export function StoryViewer({
             </div>
           )}
         </div>
-        <div className="md:col-span-2 bg-secondary/30 p-6 rounded-lg shadow-inner min-h-[300px] flex flex-col justify-between">
+        
+        <div className="w-full max-w-2xl bg-secondary/30 p-4 md:p-6 rounded-lg shadow-inner flex flex-col gap-4">
           <div>
             <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
             <Textarea
@@ -268,7 +269,9 @@ export function StoryViewer({
               className="w-full text-lg leading-relaxed font-body bg-background/70 border-primary/30 focus:border-primary min-h-[150px] mb-4"
               rows={6}
             />
-            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto mb-4">
+          </div>
+          <div>
+            <Button onClick={handleRegenerateIllustration} disabled={isRegenerating || !currentPageData} className="w-full sm:w-auto mb-2">
               {isRegenerating ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -276,42 +279,41 @@ export function StoryViewer({
               )}
               Regenerate Illustration
             </Button>
-             <p className="text-xs text-muted-foreground mb-4">
+             <p className="text-xs text-muted-foreground mb-2">
                 Illustrations are landscape-oriented.
              </p>
-
-            <div className="space-y-2">
-              <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
-                <Palette className="h-5 w-5 text-accent" />
-                Refine This Scene's Illustration
-              </Label>
-              <Textarea
-                id="pageSpecificDetails"
-                value={pageSpecificDetails}
-                onChange={(e) => setPageSpecificDetails(e.target.value)}
-                placeholder="E.g., Character is wearing a red scarf, a friendly squirrel is in the background, the character looks happy..."
-                className="w-full text-sm font-body bg-background/70 border-primary/30 focus:border-primary"
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Add specific details for this page's illustration. These will be combined with general story details.
-              </p>
-            </div>
           </div>
-
-          <div className="mt-6 flex justify-between items-center">
-            <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
-              <ChevronLeft className="h-5 w-5" />
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPageIndex + 1} of {totalPages}
-            </span>
-            <Button onClick={goToNextPage} disabled={currentPageIndex === totalPages - 1 || totalPages === 0} variant="outline" aria-label="Next Page">
-              Next
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
+              <Palette className="h-5 w-5 text-accent" />
+              Refine This Scene's Illustration
+            </Label>
+            <Textarea
+              id="pageSpecificDetails"
+              value={pageSpecificDetails}
+              onChange={(e) => setPageSpecificDetails(e.target.value)}
+              placeholder="E.g., Character is wearing a red scarf, a friendly squirrel is in the background, the character looks happy..."
+              className="w-full text-sm font-body bg-background/70 border-primary/30 focus:border-primary"
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Add specific details for this page's illustration. These will be combined with general story details.
+            </p>
           </div>
+        </div>
+
+        <div className="w-full max-w-2xl flex justify-between items-center mt-4">
+          <Button onClick={goToPreviousPage} disabled={currentPageIndex === 0} variant="outline" aria-label="Previous Page">
+            <ChevronLeft className="h-5 w-5" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPageIndex + 1} of {totalPages}
+          </span>
+          <Button onClick={goToNextPage} disabled={currentPageIndex === totalPages - 1 || totalPages === 0} variant="outline" aria-label="Next Page">
+            Next
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6">
@@ -366,4 +368,3 @@ export function StoryViewer({
     </Card>
   );
 }
-
