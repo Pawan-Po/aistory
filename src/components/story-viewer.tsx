@@ -100,7 +100,7 @@ export function StoryViewer({
 
       const payload: RegeneratePageIllustrationPayload = {
         baseCharacterDataUri: originalCharacterUri,
-        pageText: editablePageText,
+        pageText: editablePageText, // Kept for potential implicit context, though not directly rendered
         sceneDescription: currentPageData.sceneDescription,
         storyTheme: storyTheme,
         moralLesson: moralLesson,
@@ -111,7 +111,7 @@ export function StoryViewer({
         const updatedPages = [...currentStoryPages];
         updatedPages[currentPageIndex] = {
           ...updatedPages[currentPageIndex],
-          text: editablePageText,
+          text: editablePageText, // Ensure text is updated if it was edited
           imageUri: result.newImageUri,
         };
         setCurrentStoryPages(updatedPages);
@@ -277,7 +277,7 @@ export function StoryViewer({
               Regenerate Illustration
             </Button>
              <p className="text-xs text-muted-foreground mb-4">
-                Note: Embedding text in images is experimental. Illustrations are landscape-oriented.
+                Illustrations are landscape-oriented.
              </p>
 
             <div className="space-y-2">

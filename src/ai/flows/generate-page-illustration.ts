@@ -17,8 +17,8 @@ const GeneratePageIllustrationInputSchema = z.object({
     .describe(
       "The base styled character image, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  pageText: z.string().describe('The text content of the story page. This text is CRITICAL and should be accurately and legibly integrated into the illustration as if it is part of a children\'s storybook page.'),
-  sceneDescription: z.string().describe('A visual description of the scene for this page, including character actions and setting. This guides the visual elements independent of the text to be embedded.'),
+  pageText: z.string().describe('The text content of the story page. This text provides context for the scene but should NOT be rendered into the illustration.'),
+  sceneDescription: z.string().describe('A visual description of the scene for this page, including character actions and setting. This guides the visual elements of the illustration.'),
   storyTheme: z.string().describe('The overall theme of the story.'),
   moralLesson: z.string().describe('The overall moral lesson of the story.'),
   additionalDetails: z.string().optional().describe('Any other relevant details for the illustration style or content. This may include general story notes and/or specific visual details for the current scene.'),
@@ -29,7 +29,7 @@ const GeneratePageIllustrationOutputSchema = z.object({
   pageImageDataUri: z
     .string()
     .describe(
-      'The generated illustration for the page as a data URI, attempting to include the page text accurately and legibly. Expected format: data:<mimetype>;base64,<encoded_data>.'
+      'The generated illustration for the page as a data URI. Expected format: data:<mimetype>;base64,<encoded_data>.'
     ),
 });
 export type GeneratePageIllustrationOutput = z.infer<typeof GeneratePageIllustrationOutputSchema>;
@@ -49,17 +49,14 @@ const generatePageIllustrationFlow = ai.defineFlow(
     The main character, based on the provided image, should be central to the scene.
     It is CRUCIAL that the character's appearance (features, hair, clothing, colors, style) remains HIGHLY CONSISTENT with the provided base character image. The character must be clearly recognizable as the same individual from the base image in this new scene.
 
-    The illustration MUST artistically, ACCURATELY, and LEGIBLY incorporate the following text as an INTEGRAL part of the visual design, as if it's a page from a high-quality storybook: "${input.pageText}"
-    The text should be easily readable and correctly spelled.
-
-    Scene Description (visual elements for the illustration, separate from the text to be embedded): "${input.sceneDescription}"
+    The illustration should visually represent the following scene: "${input.sceneDescription}"
 
     The overall story theme is "${input.storyTheme}" and the moral is "${input.moralLesson}".`;
 
     if (input.additionalDetails) {
         imagePromptText += `\nConsider these additional details for the illustration style, character appearance, or content: "${input.additionalDetails}". If specific visual details for the current scene (e.g. character wearing specific clothes, specific expression) are mentioned within these additional details, please prioritize them for this particular illustration.`;
     }
-    imagePromptText += `\n\nEnsure the illustration style is consistent with a children's book. The text integration is a key requirement. Output the image in landscape orientation.`;
+    imagePromptText += `\n\nEnsure the illustration style is consistent with a children's book. Output the image in landscape orientation. Do NOT include any text from the story in the image itself; the illustration should be purely visual.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -79,7 +76,7 @@ const generatePageIllustrationFlow = ai.defineFlow(
     });
 
     if (!media || !media.url || !media.url.startsWith('data:image')) {
-      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..." or returned an invalid data URI. Attempting to embed text: "${input.pageText.substring(0,30)}..."`);
+      throw new Error(`Page illustration generation failed for scene: "${input.sceneDescription.substring(0, 50)}..." or returned an invalid data URI. Scene description: "${input.sceneDescription.substring(0,30)}..."`);
     }
     return { pageImageDataUri: media.url };
   }
