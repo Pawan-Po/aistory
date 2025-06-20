@@ -255,13 +255,14 @@ export function StoryViewer({
           ) : (
             <div className="w-full aspect-[4/3] bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4" data-ai-hint="placeholder image error">
               <ImageOff className="h-16 w-16 text-destructive" />
+              <p className="text-center mt-2">Illustration not available.</p>
             </div>
           )}
         </div>
         
         <div className="w-full max-w-2xl bg-secondary/30 p-4 md:p-6 rounded-lg shadow-inner flex flex-col gap-4">
           <div>
-            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text (AI will attempt to include this in the illustration)</Label>
+            <Label htmlFor="pageText" className="text-lg font-semibold mb-1 block">Page Text</Label>
             <Textarea
               id="pageText"
               value={editablePageText}
@@ -279,9 +280,6 @@ export function StoryViewer({
               )}
               Regenerate Illustration
             </Button>
-             <p className="text-xs text-muted-foreground mb-2">
-                Illustrations are landscape-oriented. Embedding text accurately in images is experimental; results may vary.
-             </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pageSpecificDetails" className="text-lg font-semibold flex items-center gap-2">
