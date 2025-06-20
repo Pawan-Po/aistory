@@ -51,8 +51,8 @@ const generatePageIllustrationFlow = ai.defineFlow(
 
     The illustration must visually represent the following scene: "${input.sceneDescription}"
 
-    CRITICAL INSTRUCTION FOR TEXT: The following story text MUST be rendered directly and clearly within the illustration: "${input.pageText}"
-    The text MUST be perfectly legible, with NO distortion, NO misspelling, and NO artistic alteration to the letters themselves. It should appear as if professionally typeset onto the image, matching the style of a high-quality children's book. The placement of the text should be natural and well-integrated with the scene's composition.
+    CRITICAL INSTRUCTION FOR TEXT: You are to reproduce the following text *EXACTLY* as written, character for character, within the illustration. Do not summarize, paraphrase, or alter it in any way. The text to embed is: "${input.pageText}"
+    This text MUST be perfectly legible, with NO distortion, NO misspelling, and NO artistic alteration to the letters or words. It should appear as if professionally typeset onto the image in a clear, readable font suitable for a children's book. The placement of the text should be natural and well-integrated with the scene's composition, but legibility and accuracy of the text are paramount.
 
     The overall story theme is "${input.storyTheme}" and the moral is "${input.moralLesson}".`;
 
